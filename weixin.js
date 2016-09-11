@@ -61,11 +61,23 @@ exports.reply = function *(next) {
 					url:'http://nodejs.org'
 				}
 			]
-		}else if(content ==='5'){
-			var data = yield wechatApi.uploadTempMaterial('image',__dirname + './');
+		}else if(content ==='5'){ //上传图片---回复图片
+			// var data = yield wechatApi.uploadTempMaterial('image',__dirname + '/material/test.jpg');
 			reply = {
 				type:'image',
-				mediaId:data.media_id,
+				// mediaId:data.media_id
+				mediaId:'51vMuvtjJPgRANObEqruZejEhGv0X7tLaKwZJ0v-_PNAIdsP0vFsK3AQlOSbqTIe'
+
+			} 
+		}else if(content ==='6'){ //回复音乐
+			// var data = yield wechatApi.uploadTempMaterial('image',__dirname + '/material/test.jpg');
+			reply = {
+				type:'music',
+				title:'这是音乐',
+				description:'好听的音乐',
+				musicURL:'http://sc1.111ttt.com/2016/1/09/11/202111800253.mp3',
+				// mediaId:data.media_id
+				thumbMediaId:'51vMuvtjJPgRANObEqruZejEhGv0X7tLaKwZJ0v-_PNAIdsP0vFsK3AQlOSbqTIe'
 
 			} 
 		}

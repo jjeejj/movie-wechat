@@ -4,11 +4,21 @@ var Promise = require('bluebird');
 var request = Promise.promisify(require('request'));
 var util = require('./util');
 
+var fs = require('fs');
+
 //微信api接口
 var prefix = 'https://api.weixin.qq.com/cgi-bin/'; //前缀
 var api = {
 	access_token:prefix+'token?grant_type=client_credential&appid=APPID&secret=APPSECRET',
-	media_upload:prefix + 'media/upload?access_token=ACCESS_TOKEN&type=TYPE' //新增临时素材
+	temporary:{
+		upload:prefix + 'media/upload?access_token=ACCESS_TOKEN&type=TYPE' //新增临时素材
+	},
+	permanent:{ //永久素材
+		uploadNews:prefix+'material/add_news?access_token=ACCESS_TOKEN',//新增图文素材
+		uploadNewsImg:prefix+'media/uploadimg?access_token=ACCESS_TOKEN',//上传图文消息中用的图片
+		upload:prefix +'material/add_material?access_token=ACCESS_TOKEN',//上传其他素材---（image，voice，video，thumb）
+		uploadVideo:prefix + 'material/add_material?access_token=ACCESS_TOKEN"'//上传video素材需在多post一个表单数据
+	}
 
 }
 
@@ -153,16 +163,17 @@ Wechat.prototype.uploadTempMaterial = function (type,filepath) {
 		that
 			.fetchAccessToken()
 			.then(function (data) {
-				var url = api.media_upload.replace('ACCESS_TOKEN',data.access_token).replace('TYPE',type);
+				var url = api.temporary.upload.replace('ACCESS_TOKEN',data.access_token).replace('TYPE',type);
 				request({
 					method:'post',
 					url:url,
 					json:true,
-					formDate:form
+					formData:form
 				}).then(function (reponse) {
 					var _data = reponse.body;
+					console.log("图片素材返回值================",JSON.stringify(_data));
 					if(_data){
-						resolve()
+						resolve(_data)
 					}else{
 						throw new Error('upload material fail')
 					}

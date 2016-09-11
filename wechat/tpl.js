@@ -6,27 +6,27 @@ var ejs = require('ejs');
 
 //6种回复消息模板
 var tpl = `<xml>
-				<ToUserName><![CDATA[<%= content.toUserName %>]]></ToUserName>
-				<FromUserName><![CDATA[<%= content.fromUserName %>]]></FromUserName>
-				<CreateTime><%= content.createTime %></CreateTime>
-				<MsgType><![CDATA[<%= content.msgType %>]]></MsgType>
-				<% if(content.msgType === 'text'){ %>
-					<Content><![CDATA[<%= content.content %>]]></Content>
-				<% } else if(content.msgType === 'image'){%>
+				<ToUserName><![CDATA[<%= toUserName %>]]></ToUserName>
+				<FromUserName><![CDATA[<%= fromUserName %>]]></FromUserName>
+				<CreateTime><%= createTime %></CreateTime>
+				<MsgType><![CDATA[<%= msgType %>]]></MsgType>
+				<% if(msgType === 'text'){ %>
+					<Content><![CDATA[<%= content %>]]></Content>
+				<% } else if(msgType === 'image'){%>
 					<Image>
 						<MediaId><![CDATA[<%= content.mediaId %>]]></MediaId>
 					</Image>
-				<% } else if(content.msgType === 'voice'){%>
+				<% } else if(msgType === 'voice'){%>
 					<Voice>
 						<MediaId><![CDATA[<%= content.mediaId %>]]></MediaId>
 					</Voice>
-				<% } else if(content.msgType === 'video'){%>
+				<% } else if(msgType === 'video'){%>
 					<Video>
 						<MediaId><![CDATA[<%= content.mediaId %>]]></MediaId>
 						<Title><![CDATA[<%= content.title %>]]></Title>
 						<Description><![CDATA[<%= content.description %>]]></Description>
 					</Video> 
-				<% } else if(content.msgType === 'music'){%>
+				<% } else if(msgType === 'music'){%>
 					<Music>
 						<Title><![CDATA[<%= content.title %>]]></Title>
 						<Description><![CDATA[<%= content.description %>]]></Description>
@@ -34,10 +34,10 @@ var tpl = `<xml>
 						<HQMusicUrl><![CDATA[<%= content.hqMusicUrl %>]]></HQMusicUrl>
 						<ThumbMediaId><![CDATA[<%= content.thumbMediaId %>]]></ThumbMediaId>
 					</Music>
-				<% } else if(content.msgType === 'news'){ %>
-					<ArticleCount><%= content.content.length %></ArticleCount>
+				<% } else if(msgType === 'news'){ %>
+					<ArticleCount><%= content.length %></ArticleCount>
 					<Articles>
-						<% content.content.forEach(function(item){ %>
+						<% content.forEach(function(item){ %>
 							<item>
 								<Title><![CDATA[<%= item.title %>]]></Title> 
 								<Description><![CDATA[<%= item.description %>]]></Description>

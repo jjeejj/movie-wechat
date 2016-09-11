@@ -31,5 +31,5 @@ exports.tpl = function (content,message) {
 	info.toUserName = fromUserName;
 
 	console.log('info=======================',info);
-	return template.replyTemplate({'content':info});
+	return template.replyTemplate(info);
 }
