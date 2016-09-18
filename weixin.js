@@ -62,15 +62,15 @@ exports.reply = function *(next) {
 				}
 			]
 		}else if(content ==='5'){ //上传图片---回复图片
-			// var data = yield wechatApi.uploadTempMaterial('image',__dirname + '/material/test.jpg');
+			var data = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg');
 			reply = {
 				type:'image',
-				// mediaId:data.media_id
-				mediaId:'51vMuvtjJPgRANObEqruZejEhGv0X7tLaKwZJ0v-_PNAIdsP0vFsK3AQlOSbqTIe'
+				mediaId:data.media_id
+				// mediaId:'3HEzOhLm1D_B1MKZV__EFD5vbeYZsmcTCY3IQcbLoYuTco_gM8dYcp9ZH3ZyVn9z' //3天失效
 
 			} 
 		}else if(content ==='6'){ //回复音乐
-			// var data = yield wechatApi.uploadTempMaterial('image',__dirname + '/material/test.jpg');
+			// var data = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg');
 			reply = {
 				type:'music',
 				title:'这是音乐',
