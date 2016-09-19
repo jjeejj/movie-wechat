@@ -24,7 +24,7 @@ var api = {
 		delete:prefix+'material/del_material?access_token=ACCESS_TOKEN', //删除永久素材
 		updateNews:prefix + 'material/update_news?access_token=ACCESS_TOKEN', //更新永久图文素材
 		materialCount:prefix + 'material/get_materialcount?access_token=ACCESS_TOKEN',//获取永久素材各个类型的总数
-		materialList::prefix +'material/batchget_material?access_token=ACCESS_TOKEN'//分类型获取永久素材的列表
+		materialList:prefix +'material/batchget_material?access_token=ACCESS_TOKEN'//分类型获取永久素材的列表
 	}
 
 }
@@ -236,7 +236,7 @@ Wechat.prototype.uploadMaterial = function (type,material,permanent) {
 Wechat.prototype.fetchMaterial = function (mediaId,type,permanent) {
 	var that = this;
 	var form  = {};
-	var fetchUrl = api.temporary.fetch;
+	var fetchUrl = api.temporary.fetch; //默认临时的
 
 	if(permanent){
 		fetchUrl = api.permanent.fetch;
@@ -255,8 +255,26 @@ Wechat.prototype.fetchMaterial = function (mediaId,type,permanent) {
 				}else{
 					form.media_id = mediaId;
 				}
-
-				resolve(fetchUrl)			
+				var options = {
+					method:'get',
+					url:fetchUrl,
+					json:true
+				}
+				if(permanent){
+					options.method='post',
+					options.body = form
+				}
+				request(options).then(function (reponse) {
+					var _data = reponse.body;
+					console.log("获取 "+type+" 素材返回值================",JSON.stringify(_data));
+					if(_data){
+						resolve(_data)
+					}else{
+						throw new Error('fetch material fail')
+					}
+				}).catch(function (err) {
+					reject(err);
+				})		
 			})
 	})
 

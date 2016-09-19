@@ -80,6 +80,66 @@ exports.reply = function *(next) {
 				thumbMediaId:'51vMuvtjJPgRANObEqruZejEhGv0X7tLaKwZJ0v-_PNAIdsP0vFsK3AQlOSbqTIe'
 
 			} 
+		}else if(content === '10'){ //上传图文素材---最多8段
+			var newPicData = yield wechatApi.uploadMaterial('pic',__dirname + '/material/test.jpg',{}); //上传图文用的图片素材
+			// var picData = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg',{}); //上传图片素材--封面
+
+			var media = {
+			   "articles": [{
+			   "title": '示例',
+		       // "thumb_media_id": picData.media_id,
+		       "thumb_media_id": 'qHjGwCQ95p9tPlmN394S2pSZT7PClRkTZJQ87HGTNvg',
+		       "author": 'jiang',
+		       "digest": '摘要',
+		       "show_cover_pic":1,
+		       "content": '这是内容'+newPicData.url,
+		       "content_source_url": 'http://mp.weixin.qq.com/wiki/10/10ea5a44870f53d79449290dfd43d006.html'
+				}]
+			}
+
+			/**
+			 * 图片素材返回值================ {"url":"http://mmbiz.qpic.cn/mmbiz_jpg/A1yMDaYL4J
+OmfX5v9oibOVnBVmynpibcX00BTO9opyAPJYxyHplR4o8ictjHjfl0NRrgjU622yxounliaITU5GVryw
+/0"}
+图片素材返回值================ {"media_id":"qHjGwCQ95p9tPlmN394S2pSZT7PClRkTZJQ87HGTNvg","url":"http://mmbiz.qpic.cn/mmbiz_jpg/A1yMDaYL4JOmfX5v9oibOVnBVmynpibcX
+0D7FSSicQ4azXWHJYync0LHxMOicCaYzNFo0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}
+图片素材返回值================ {"media_id":"qHjGwCQ95p9tPlmN394S2o0Q6_r5cXNEiJNT
+UmJB3pA"}
+			 */
+
+			//上传图文
+			var newsData = yield wechatApi.uploadMaterial('news',media,{}); //返回时图文的消息 media_id
+
+			/**
+			 * 获取图文素材返回值================ {"news_item":[{"title":"示例","author":"jiang","d
+igest":"摘要","content":"这是内容http://mmbiz.qpic.cn/mmbiz_jpg/A1yMDaYL4JOmfX5v
+9oibOVnBVmynpibcX00BTO9opyAPJYxyHplR4o8ictjHjfl0NRrgjU622yxounliaITU5GVryw/0","c
+ontent_source_url":"http://mp.weixin.qq.com/wiki/10/10ea5a44870f53d79449290dfd43
+d006.html","thumb_media_id":"qHjGwCQ95p9tPlmN394S2pSZT7PClRkTZJQ87HGTNvg","show_
+cover_pic":1,"url":"http://mp.weixin.qq.com/s?__biz=MzA4ODg2NTI1OA==&mid=1000000
+10&idx=1&sn=7ef0184d1238e8e0cdee646a8ac1ae21#rd","thumb_url":"http://mmbiz.qpic.
+cn/mmbiz_jpg/A1yMDaYL4JOmfX5v9oibOVnBVmynpibcX0D7FSSicQ4azXWHJYync0LHxMOicCaYzNF
+o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
+:1474246503}
+			 */
+			//获取该图文素材
+
+			var data = yield wechatApi.fetchMaterial(newsData.media_id,'news',{});
+
+			console.log(data);
+
+			var items = data.news_item;
+			var news;//回复的图文消息
+			items.forEach(function (item) {
+				news.push({
+					title:item.title,
+					description:item.digest,
+					picUrl:item.thumb_url,
+					url:item.url
+				})
+			})
+
+			reply = news;
 		}
 		console.log('文本回复内容===============',reply);
 		this.body = reply;
