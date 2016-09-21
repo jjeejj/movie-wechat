@@ -17,7 +17,7 @@ var config = {
 			return utils.readFileAsync(wechat_file,'utf8');//返回一个Promise
 		},
 		saveAccessToken:function (data) { //传进来的是对象
-			data = JSON.stringify(data);//字符串话
+			data = JSON.stringify(data,null,4);//字符串话----格式化排版
 
 			return utils.writeFileAsync(wechat_file,data);//返回一个Promise
 		}

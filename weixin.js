@@ -4,6 +4,8 @@ var Wechat = require('./wechat/wechat');
 
 var wechatApi = new Wechat(config.wechat);
 
+var fs = require('fs');
+
 ///微信回复处理逻辑
 exports.reply = function *(next) {
 	var message = this.weixin.message;
@@ -85,16 +87,18 @@ exports.reply = function *(next) {
 			// var picData = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg',{}); //上传图片素材--封面
 
 			var media = {
-			   "articles": [{
-			   "title": '示例',
-		       // "thumb_media_id": picData.media_id,
-		       "thumb_media_id": 'qHjGwCQ95p9tPlmN394S2pSZT7PClRkTZJQ87HGTNvg',
-		       "author": 'jiang',
-		       "digest": '摘要',
-		       "show_cover_pic":1,
-		       "content": '这是内容'+newPicData.url,
-		       "content_source_url": 'http://mp.weixin.qq.com/wiki/10/10ea5a44870f53d79449290dfd43d006.html'
-				}]
+			   "articles": [
+				   {
+					   "title": '示例',
+				       // "thumb_media_id": picData.media_id,
+				       "thumb_media_id": 'qHjGwCQ95p9tPlmN394S2pSZT7PClRkTZJQ87HGTNvg',
+				       "author": 'jiang',
+				       "digest": '摘要',
+				       "show_cover_pic":1,
+				       "content": '这是内容'+newPicData.url,
+				       "content_source_url": 'http://mp.weixin.qq.com/wiki/10/10ea5a44870f53d79449290dfd43d006.html'
+					}
+				]
 			}
 
 			/**
@@ -129,7 +133,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log(data);
 
 			var items = data.news_item;
-			var news;//回复的图文消息
+			var news = [];//回复的图文消息
 			items.forEach(function (item) {
 				news.push({
 					title:item.title,
@@ -140,7 +144,87 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			})
 
 			reply = news;
+
+		}else if(content === '11'){ //获取素材数量
+			var count = yield wechatApi.getMaterialCount();
+
+			console.log(JSON.stringify(count));
+
+			//把素材数量信息存到文件中
+			fs.writeFile('./json-info/permanent-material-count-info.json',JSON.stringify(count,null,4),function (err) {
+				if(err) {
+			      console.log(err);
+			    } else {
+			      console.log("count JSON saved");
+			    }
+			})
+
+
+			/**
+
+			var imageMaterialList = yield wechatApi.getMaterialList({
+				type:'image',
+				offset:0,
+				count:10
+			})
+
+			var videoMaterialList = yield wechatApi.getMaterialList({
+				type:'video',
+				offset:0,
+				count:10
+			})
+
+			
+			var voiceMaterialList = yield wechatApi.getMaterialList({
+				type:'voice',
+				offset:0,
+				count:10
+			})
+
+			var newsMaterialList = yield wechatApi.getMaterialList({
+				type:'news',
+				offset:0,
+				count:10
+			})
+			*/
+
+			var	materialListResult = yield [
+				wechatApi.getMaterialList({
+					type:'image',
+					offset:0,
+					count:10
+				}),
+				wechatApi.getMaterialList({
+					type:'video',
+					offset:0,
+					count:10
+				}),
+				wechatApi.getMaterialList({
+					type:'voice',
+					offset:0,
+					count:10
+				}),
+				wechatApi.getMaterialList({
+					type:'news',
+					offset:0,
+					count:10
+				})
+			]
+
+			console.log(materialListResult);
+
+			//把素材列表信息存到文件中
+			fs.writeFile('./json-info/permanent-material-list-info.json',JSON.stringify(materialListResult,null,4),function (err) {
+				if(err) {
+			      console.log(err);
+			    } else {
+			      console.log("materialListResult JSON saved");
+			    }
+			})
+
+			reply = "获得素材成功";
 		}
+
 		console.log('文本回复内容===============',reply);
 		this.body = reply;
 	}

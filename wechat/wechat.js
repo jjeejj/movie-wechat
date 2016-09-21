@@ -25,6 +25,18 @@ var api = {
 		updateNews:prefix + 'material/update_news?access_token=ACCESS_TOKEN', //更新永久图文素材
 		materialCount:prefix + 'material/get_materialcount?access_token=ACCESS_TOKEN',//获取永久素材各个类型的总数
 		materialList:prefix +'material/batchget_material?access_token=ACCESS_TOKEN'//分类型获取永久素材的列表
+	},
+	group:{ //微信用户分组
+		creat:prefix + 'groups/create?access_token=ACCESS_TOKEN',//创建分组
+		fetch:prefix +'groups/get?access_token=ACCESS_TOKEN',//查询所有分组
+		update:prefix +'groups/update?access_token=ACCESS_TOKEN',//更新分组名
+		delete:prefix +'groups/delete?access_token=ACCESS_TOKEN',//删除分组
+		fetchByOpenId:prefix + 'groups/getid?access_token=ACCESS_TOKEN',//查询用户所在分组
+		move:prefix +'groups/members/update?access_token=ACCESS_TOKEN',//移动用户分组
+		moveBatch:prefix +'groups/members/batchupdate?access_token=ACCESS_TOKEN'//批量移动用户分组
+	},
+	tag:{ //微信用户标签
+
 	}
 
 }
@@ -412,8 +424,8 @@ Wechat.prototype.getMaterialList = function (options) {
 
 
 	options.type  = options.type || 'image';
-	options.offset  = options.type || 0;
-	options.count  = options.type || 20;
+	options.offset  = options.offset || 0;
+	options.count  = options.count || 20;
 
 	var materialListUrl = api.permanent.materialList;
 
@@ -440,6 +452,315 @@ Wechat.prototype.getMaterialList = function (options) {
 					reject(err);
 				})			
 			})
+	})
+}
+
+/**
+ * 创建用户分组
+ * @param  {[string]} name 分组的名字
+ * @return {[type]}    Promise
+ */
+Wechat.prototype.createGroup = function (name) {
+	var that = this;
+
+	var createGroupUrl = api.group.creat;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					createGroupUrl = createGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					//POST数据格式：json
+					//POST数据例子：{"group":{"name":"test"}}
+
+					var form = {
+						group:{
+							"name":name
+						}
+					}
+					request({
+						method:'post',
+						url:createGroupUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log("创建用户分组================",JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ * 获取所有的分组
+ * @return {[type]} [description]
+ */
+Wechat.prototype.fetchGroup = function () {
+	var that = this;
+
+	var fetchGroupUrl = api.group.fetch;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					fetchGroupUrl = fetchGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					
+					request({
+						method:'get',
+						url:fetchGroupUrl,
+						json:true,
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log("获取所有的用户分组================",JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ *根据用户的openi获取用户所在的分组
+ * @param  {[type]} openid 用户的唯一标识
+ * @return {[type]}      
+ */
+Wechat.prototype.fetchGroupByOpenId = function (openid) {
+	var that = this;
+
+	var fetchGroupByOpenIdUrl = api.group.fetchByOpenId;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					fetchGroupByOpenIdUrl = fetchGroupByOpenIdUrl.replace('ACCESS_TOKEN',data.access_token);
+					//POST数据格式：json
+					//POST数据例子：{"openid":"od8XIjsmk6QdVTETa9jLtGWA6KBc"}
+					
+					var form = {
+						"openid":openid
+					}
+					request({
+						method:'post',
+						url:fetchGroupByOpenIdUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`获取${openid}所在分组用户分组================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ * 更新分组
+ * @param  {[type]} groupId 分组的id
+ * @param  {[type]} name   分组的名字
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.updateGroup = function (groupId,name) {
+	var that = this;
+
+	var updateGroupUrl = api.group.update;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					updateGroupUrl = updateGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					//POST数据格式：json
+					//POST数据例子：{"group":{"id":108,"name":"test2_modify2"}}
+					
+					var form = {
+						"group":{
+							"id":groupId,
+							"name":name
+						}
+					}
+					request({
+						method:'post',
+						url:updateGroupUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`修改${groupId}分组名字为${name}================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('updateGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+/**
+ * 为某一用户移动分组
+ * 把批量移动也和并在一起
+ * @param  {[type]} openids 用户唯一标识符
+ * @param  {[type]} to_groupid    分组id
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.moveGroup = function (openids,to_groupid) {
+	var that = this;
+
+	var moveGroupUrl = api.group.move;
+
+	var form = {
+		"to_groupid":to_groupid
+	};
+
+	if(_isArrary(openids)){ //批量移动
+		moveGroupUrl = api.group.moveBatch;
+		//POST数据格式：json
+		//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
+		 form.openid_list = openids
+				
+	}else{
+		//POST数据格式：json
+		//POST数据例子：{"openid":"oDF3iYx0ro3_7jD4HFRDfrjdCM58","to_groupid":108}
+		form.openid:openids
+	}
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					moveGroupUrl = moveGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					
+					request({
+						method:'post',
+						url:moveGroupUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`把用户${openids}移动到分组的为${to_groupid}================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('moveGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ * 批量移动用户分组
+ * @param  {[type]} openid_list 用户唯一标识符openid的列表（size不能超过50）
+ * @param  {[type]} to_groupid  	分组id
+ * @return {[type]}             [description]
+ */
+Wechat.prototype.moveBatchGroup = function (openid_list,to_groupid) {
+	var that = this;
+
+	var moveBatchGroupUrl = api.group.moveBatch;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					moveBatchGroupUrl = moveBatchGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					//POST数据格式：json
+					//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
+					
+					var form = {
+						"openid_list":openid_list,
+						"to_groupid":to_groupid
+					}
+					request({
+						method:'post',
+						url:moveBatchGroupUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`批量用户移动到分组的为${to_groupid}================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('moveGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ * 删除分组 注意本接口是删除一个用户分组，删除分组后，所有该分组内的用户自动进入默认分组。
+ * @param  {[type]} groupid 	分组的id
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.deteleGroup = function (groupid) {
+	var that = this;
+
+	var deteleGroupUrl = api.group.delete;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					deteleGroupUrl = deteleGroupUrl.replace('ACCESS_TOKEN',data.access_token);
+					//POST数据格式：json
+					//POST数据例子：{"group":{"id":108}}
+					
+					var form = {
+						"group":{
+							"id":groupid
+						}
+					}
+					request({
+						method:'post',
+						url:deteleGroupUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`删除用户分组${groupid}================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('deteleGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
 	})
 }
 module.exports = Wechat;
