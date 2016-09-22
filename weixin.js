@@ -223,6 +223,45 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			})
 
 			reply = "获得素材成功";
+		}else if(content === '12'){ //分组
+
+			/**
+			var group = yield wechatApi.createGroup('wechat'); // 新建分组
+
+			console.log('新建分组wechat',group);
+			*/
+
+			var groups = yield wechatApi.fetchGroups();//获取现有的所有分组
+
+			
+			console.log('操作之前的分组信息',groups);
+
+			var my_group = yield wechatApi.fetchGroupByOpenId(message.FromUserName); //查询该人所在的分组
+
+			console.log(`${message.FromUserName} 在的分组为 ${my_group}`);
+
+			var move_group = yield wechatApi.moveGroup(message.FromUserName,2);//移动到新分组
+
+			console.log(`${message.FromUserName} 移动到新的分组为 成功`);
+
+			var upateWechatGroup = yield wechatApi.updateGroup(100,'upateWechat');//修改分组名
+
+			console.log('修改wechat分组名为upateWechat 成功');
+
+			var groups = yield wechatApi.fetchGroups();//获取现有的所有分组
+
+			console.log('操作之后的分组信息',groups);
+			
+			//把所有的分组信息保存到文件中
+			fs.writeFile('./json-info/group-list-info.json',JSON.stringify(groups,null,4),function (err) {
+				if(err) {
+			      console.log(err);
+			    } else {
+			      console.log("groups JSON saved");
+			    }
+			})
+
+			reply = '分组信息获取成功';
 		}
 
 		console.log('文本回复内容===============',reply);

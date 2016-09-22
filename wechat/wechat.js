@@ -37,7 +37,12 @@ var api = {
 	},
 	tag:{ //微信用户标签
 
+	},
+	user:{
+		remark:'user/info/updateremark?access_token=ACCESS_TOKEN',//对指定用户设置备注名，该接口暂时开放给微信认证的服务号
 	}
+
+
 
 }
 
@@ -503,7 +508,7 @@ Wechat.prototype.createGroup = function (name) {
  * 获取所有的分组
  * @return {[type]} [description]
  */
-Wechat.prototype.fetchGroup = function () {
+Wechat.prototype.fetchGroups = function () {
 	var that = this;
 
 	var fetchGroupUrl = api.group.fetch;
@@ -637,16 +642,16 @@ Wechat.prototype.moveGroup = function (openids,to_groupid) {
 		"to_groupid":to_groupid
 	};
 
-	if(_isArrary(openids)){ //批量移动
+	if(_isArray(openids)){ //批量移动
 		moveGroupUrl = api.group.moveBatch;
 		//POST数据格式：json
 		//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
-		 form.openid_list = openids
+		 form.openid_list = openids;
 				
 	}else{
 		//POST数据格式：json
 		//POST数据例子：{"openid":"oDF3iYx0ro3_7jD4HFRDfrjdCM58","to_groupid":108}
-		form.openid:openids
+		form.openid = openids;
 	}
 
 	return new Promise(function (resolve,reject) {
@@ -755,6 +760,57 @@ Wechat.prototype.deteleGroup = function (groupid) {
 							resolve(_data)
 						}else{
 							throw new Error('deteleGroup fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+
+	})
+}
+
+/**
+ * 
+ * 指定用户设置备注名，该接口暂时开放给微信认证的服务号
+ * @param  {[type]} openid 指定用户的用户标识
+ * @param  {[type]} remark新的备注名，长度必须小于30字符
+ * @return {[type]}        [description]
+ */
+Wechat.prototype.remarkUser = function (openid,remark) {
+	var that = this;
+
+	var remarkUserUrl = api.user.remark;
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					remarkUserUrl = remarkUserUrl.replace('ACCESS_TOKEN',data.access_token);
+					/**
+					POST数据格式：json
+					POST数据例子：
+					{
+						"openid":"oDF3iY9ffA-hqb2vVvbr7qxf6A0Q",
+						"remark":"pangzi"
+					}
+					*/
+					
+					var form = {
+						"openid":openid,
+						"remark":"姜"
+					}
+					request({
+						method:'post',
+						url:remarkUserUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`为指定用户${openid}设置备注名${remark} 成功================`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('remarkUser fail')
 						}
 					}).catch(function (err) {
 						reject(err);
