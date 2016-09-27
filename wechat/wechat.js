@@ -18,7 +18,7 @@ var api = {
 	permanent:{ //永久素材
 		uploadNews:prefix+'material/add_news?access_token=ACCESS_TOKEN',//新增图文素材
 		uploadNewsPic:prefix+'media/uploadimg?access_token=ACCESS_TOKEN',//上传图文消息中用的图片
-		upload:prefix +'material/add_material?access_token=ACCESS_TOKEN',//上传其他素材---（image，voice，video，thumb）上传video素材需在多post一个表单数据
+		upload:prefix +'material/add_material?access_token=ACCESS_TOKEN',//上传其他素材---（image，voice，video，thumb）上传video素材需在多post一个表单数据(同一个地址)
 		// uploadVideo:prefix + 'material/add_material?access_token=ACCESS_TOKEN"'//
 		fetch:prefix+'material/get_material?access_token=ACCESS_TOKEN', //获取永久素材
 		delete:prefix+'material/del_material?access_token=ACCESS_TOKEN', //删除永久素材
@@ -30,17 +30,40 @@ var api = {
 		creat:prefix + 'groups/create?access_token=ACCESS_TOKEN',//创建分组
 		fetch:prefix +'groups/get?access_token=ACCESS_TOKEN',//查询所有分组
 		update:prefix +'groups/update?access_token=ACCESS_TOKEN',//更新分组名
-		delete:prefix +'groups/delete?access_token=ACCESS_TOKEN',//删除分组
+		delete:prefix +'groups/delete?access_token=ACCESS_TOKEN',//删除分组，删除分组后，所有该分组内的用户自动进入默认分组
 		fetchByOpenId:prefix + 'groups/getid?access_token=ACCESS_TOKEN',//查询用户所在分组
 		move:prefix +'groups/members/update?access_token=ACCESS_TOKEN',//移动用户分组
 		moveBatch:prefix +'groups/members/batchupdate?access_token=ACCESS_TOKEN'//批量移动用户分组
 	},
-	tag:{ //微信用户标签
-
+	tag:{ //微信用户标签 ,标签功能目前支持公众号为用户打上最多三个标签
+		create:prefix + 'tags/create?access_token=ACCESS_TOKEN',//创建标签
+		fetch:prefix +'tags/get?access_token=ACCESS_TOKEN',//查询所有标签
+		update:prefix +'tags/update?access_token=ACCESS_TOKEN',//更新标签名。请注意不能和其他标签重名
+		delete:prefix +'tags/delete?access_token=ACCESS_TOKEN', //删除标签,当某个标签下的粉丝超过10w时，后台不可直接删除标签。此时，开发者可以对该标签下的openid列表，先进行取消标签的操作，直到粉丝数不超过10w后，才可直接删除该标签。
+		fetchUserByTagId:prefix +'user/tag/get?access_token=ACCESS_TOKEN',//获取标签下粉丝列表
+		fetchTagListsByOpenId:prefix + 'tags/getidlist?access_token=ACCESS_TOKEN',//获取用户身上的标签列表
+		batchtag:prefix +'tags/members/batchtagging?access_token=ACCESS_TOKEN',//批量为用户打标签
+		batchuntag:prefix +'tags/members/batchuntagging?access_token=ACCESS_TOKEN',//批量为用户取消标签
+		getblacklist:prefix +'tags/members/getblacklist?access_token=ACCESS_TOKEN',//黑名单列表
+		batchblacklist:prefix +'tags/members/batchblacklist?access_token=ACCESS_TOKEN',//拉黑一批用户	
+		batchunblacklist:prefix+'tags/members/batchunblacklist?access_token=ACCESS_TOKEN'//取消拉黑一批用户
 	},
-	user:{
-		remark:'user/info/updateremark?access_token=ACCESS_TOKEN',//对指定用户设置备注名，该接口暂时开放给微信认证的服务号
+
+	user:{ //用户信息
+		remark:prefix + 'user/info/updateremark?access_token=ACCESS_TOKEN',//对指定用户设置备注名，该接口暂时开放给微信认证的服务号
+		fetch:prefix +'user/info?access_token=ACCESS_TOKEN&openid=OPENID&lang=zh_CN', //获取用户基本信息
+		batchFetch:prefix +'user/info/batchget?access_token=ACCESS_TOKEN',//批量获取用户基本信息
+		userList:prefix + 'user/get?access_token=ACCESS_TOKEN' //获取用户列表
+	},
+	mass:{  //群发
+		sendByGroupOrTag:prefix + 'message/mass/sendall?access_token=ACCESS_TOKEN',//群发接口，根据标签进行群发 ，根据分组进行群发
+		uploadvideo:'https://file.api.weixin.qq.com/cgi-bin/media/uploadvideo?access_token=ACCESS_TOKEN'//群发视频之前需要调用该接口，获得群发视频的media_id
+		sendByOpendIds:prefix + 'message/mass/send?access_token=ACCESS_TOKEN',//根据OpenID列表群发【订阅号不可用，服务号认证后可用】
+		delete: prefix + 'message/mass/delete?access_token=ACCESS_TOKEN',//删除群发【订阅号与服务号认证后均可用】
+		preview: prefix + 'message/mass/preview?access_token=ACCESS_TOKEN',//预览接口【订阅号与服务号认证后均可用】
+		status: prefix + 'message/mass/get?access_token=ACCESS_TOKEN' //查询群发消息发送状态
 	}
+
 
 
 
@@ -164,6 +187,8 @@ Wechat.prototype.reply = function () {
 	this.body = xml;
 
 }
+
+//素材接口
 
 /**
  *上传素材
@@ -460,6 +485,8 @@ Wechat.prototype.getMaterialList = function (options) {
 	})
 }
 
+//分组接口
+
 /**
  * 创建用户分组
  * @param  {[string]} name 分组的名字
@@ -642,7 +669,7 @@ Wechat.prototype.moveGroup = function (openids,to_groupid) {
 		"to_groupid":to_groupid
 	};
 
-	if(_isArray(openids)){ //批量移动
+	if(_.isArray(openids)){ //批量移动
 		moveGroupUrl = api.group.moveBatch;
 		//POST数据格式：json
 		//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
@@ -769,6 +796,8 @@ Wechat.prototype.deteleGroup = function (groupid) {
 	})
 }
 
+//用户信息接口
+
 /**
  * 
  * 指定用户设置备注名，该接口暂时开放给微信认证的服务号
@@ -816,7 +845,345 @@ Wechat.prototype.remarkUser = function (openid,remark) {
 						reject(err);
 					})	
 				})
-
 	})
 }
+
+/**
+ * 获取用户基本信息
+ * 分单个获取，和批量获取
+ * openids 为数组是为批量获取，为字符串是为单个获取
+ * @param  {[type]} openids 用户的标识，对当前公众号唯一
+ * @param  {[type]} lang    国家地区语言版本，zh_CN 简体，zh_TW 繁体，en 英语，默认为zh-CN
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.fetchUsers = function (openids,lang) {
+	var that = this;
+
+	lang = lang || 'zh-CN';
+
+	var fetchUsersUrl = api.user.fetch; //默认为单个获取
+	var options = {
+		json:true
+	}
+
+
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+
+					if(_isArray(openids)){
+						fetchUsersUrl = api.user.batchFetch;
+						options.method = 'post';
+						options.body= {
+							"user_list":openids,
+							"lang":lang
+						}
+					}else{
+					
+						fetchUsersUrl = fetchUsersUrl.replace('OPENID',openids).replace('zh_CN',lang);
+					}
+
+					fetchUsersUrl = fetchUsersUrl.replace('ACCESS_TOKEN',data.access_token);
+					options.url = fetchUsersUrl;
+
+
+					request(options).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`获取用户基本信息成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('fetchUsers fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 获取用户列表
+ * @param  {[type]} next_openid 第一个拉取的OPENID，不填默认从头开始拉取
+ * @return {[type]}             [description]
+ */
+Wechat.prototype.getUsersList = function (next_openid) {
+	var that = this;
+
+	var getUserListUrl = api.user.userList; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+
+					
+					getUserListUrl = getUserListUrl.replace('ACCESS_TOKEN',data.access_token);
+
+					if(next_openid){
+						getUserListUrl += '&next_openid='+next_openid
+					}
+					
+					request({
+						method:'get',
+						url:getUserListUrl,
+						json:true
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`获取用户列表成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('getUsersList fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+
+//群发接口
+
+/**
+ * 群发信息接口
+ * 根据分组id或标签id
+ * @param  {[type]} type   消息类型
+ * @param  {[type]} message 群发的消息
+ * @param  {[type]} groupId 用户分组ID
+ * @param  {[type]} tagId  用户标签id
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.sendByGroupOrTag = function (type,message,groupId,tagId) {
+	var that = this;
+
+	//群发的json
+	var msg = {
+		"filter":{
+		      "is_to_all":false, //默认不是群发所有人
+	   	  },
+	   	 "msgtype":type
+	}
+
+	msg[type] = message;
+
+	//发送对象的判断
+	if(tagId){
+		msg.filter.tag_id = tagId; //标签发送优先
+	}else if(groupId){
+		msg.filter.group_id = groupId; //分组发送
+	}else{
+		msg.filter.is_to_all = true;//发送所有
+	}
+
+	var sendByGroupOrTagUrl = api.mass.sendByGroupOrTag; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					sendByGroupOrTagUrl = sendByGroupOrTagUrl.replace('ACCESS_TOKEN',data.access_token);
+
+					
+					request({
+						method:'post',
+						url:sendByGroupOrTagUrl,
+						json:true,
+						body:msg
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`群发信息成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('sendByGroupOrTag fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 群发视频之前进行上传视频，获取群发视频的media_id
+ * @param  {[type]} content 内容
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.massUploadvideo = function (content) {
+	var that = this;
+
+	var uploadvideo = api.mass.uploadvideo; 
+	
+	return new Promise(function (resolve,reject) {
+		
+				request({
+					method:'post',
+					url:uploadvideo,
+					json:true,
+					body:content
+				}).then(function (reponse) {
+					var _data = reponse.body;
+					console.log(`群发视频之前进行上传视频，获取群发视频的media_id===============`,JSON.stringify(_data));
+					if(_data){
+						resolve(_data)
+					}else{
+						throw new Error('uploadvideo fail')
+					}
+				}).catch(function (err) {
+					reject(err);
+				})	
+	})
+}
+
+/**
+ * 根据openIds 列表进行群发
+ * @param  {[type]} type   类型
+ * @param  {[type]} message 群发内容
+ * @param  {[type]} openIds opensid列表，
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
+	var that = this;
+
+	//群发的json
+	var msg = {
+		"touser":openIds
+	   	"msgtype":type
+	}
+
+	msg[type] = message;
+
+
+	var sendByOpendIdsUrl = api.mass.sendByOpendIds; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					sendByOpendIdsUrl = sendByOpendIdsUrl.replace('ACCESS_TOKEN',data.access_token);
+
+					
+					request({
+						method:'post',
+						url:sendByOpendIdsUrl,
+						json:true,
+						body:msg
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`根据openIds 列表进行群发===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('sendByOpendIds fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 删除群发
+ * 或
+ * 查询群发消息发送状态
+ * @param  {[type]} msg_id 微信群发后的返回的ID
+ * @param  {[type]} flag 功能选择 1 为删除群发，2：为查询群发状态
+ * @return {[type]}       
+ */
+Wechat.prototype.deleteMassOrGetMassStatus = function (msg_id,flag) {
+	var that = this;
+
+	var deleteMassOrGetMassStatusUrl = api.mass.delete;  //默认为删除群发
+
+	if(flag === 2){
+		deleteMassOrGetMassStatusUrl = api.mass.status;
+	}
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					deleteMassOrGetMassStatusUrl = deleteMassOrGetMassStatusUrl.replace('ACCESS_TOKEN',data.access_token);
+			
+					request({
+						method:'post',
+						url:deleteMassOrGetMassStatusUrl,
+						json:true,
+						body:{
+							"msg_id":msg_id
+						}
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log( (flag ===2 )? '查询':'删除'+`群发 ${msg_id} 成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('deleteMassOrGetMassStatus fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 群发预览功能
+ * @param  {[type]} type   预览消息类型
+ * @param  {[type]} message 预览消息
+ * @param  {[type]} openId  预览人的openid
+ * @param  {[type]} wxname  预览人的微信名字
+ * 了满足第三方平台开发者的需求，在保留对openID预览能力的同时，
+ * 增加了对指定微信号发送预览的能力，但该能力每日调用次数有限制（100次），请勿滥用。
+ * towxname和touser同时赋值时，以towxname优先
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.previewMass = function (type,message,openId,wxname) {
+	var that = this;
+
+	//群发的json
+	var msg = {
+	   	"msgtype":type
+	}
+
+	msg[type] = message;
+
+	if(wxname){
+		msg.towxname = wxname
+	}else{
+		msg.touser = openId;
+	}
+
+	var previewMassUrl = api.mass.preview; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					previewMassUrl = previewMassUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'post',
+						url:previewMassUrl,
+						json:true,
+						body:msg
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`${openId},${wxname} 预览成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('previewMass fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
 module.exports = Wechat;

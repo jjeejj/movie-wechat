@@ -240,7 +240,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 
 			console.log(`${message.FromUserName} 在的分组为 ${my_group}`);
 
-			var move_group = yield wechatApi.moveGroup(message.FromUserName,2);//移动到新分组
+			var move_group = yield wechatApi.moveGroup(message.FromUserName,100);//移动到新分组
 
 			console.log(`${message.FromUserName} 移动到新的分组为 成功`);
 
@@ -262,6 +262,53 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			})
 
 			reply = '分组信息获取成功';
+		}else if(content === '13'){ //获取用户基本信息
+			var user = yield wechatApi.fetchUsers(message.FromUserName);
+
+			console.log('user 单个基本信息:',user);
+
+			var openIds = [
+				{
+		            "openid": message.FromUserName, 
+		            "lang": "en"
+				}
+			];
+
+			var users = yield wechatApi.fetchUsers(openIds);
+
+			console.log('users 多个基本信息:',users);
+
+			reply = JSON.stringify(user,null,4);
+		}else if(content === '14'){ //用户列表
+			var usersList = yield wechatApi.getUsersList();
+
+			console.log('用户列表:',usersList);
+
+			//把用户列表信息保存到文件中
+			fs.writeFile('./json-info/users-list-info.json',JSON.stringify(usersList,null,4),function (err) {
+				if(err) {
+			      console.log(err);
+			    } else {
+			      console.log("usersList JSON saved");
+			    }
+			})
+
+			reply = '用户列表信息获取成功';
+		}else if(content === '15'){ //群发消息
+			var mpnews = { //图文消息
+				"media_id":"qHjGwCQ95p9tPlmN394S2k_7_zqB1hPl4Mpdwpjur9k"
+			}
+
+			var text = { //文本消息
+				"content":"hello wechat"
+			}
+
+			//var msgData = yield wechatApi.sendByGroupOrTag('mpnews',mpnews,100,null);//图文消息
+			var msgData = yield wechatApi.sendByGroupOrTag('text',text,100,null);//图文消息
+
+			console.log('群发消息结果:',msgData);
+
+			reply = "Yeah!"
 		}
 
 		console.log('文本回复内容===============',reply);

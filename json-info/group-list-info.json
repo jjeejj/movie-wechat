@@ -3,7 +3,7 @@
         {
             "id": 0,
             "name": "未分组",
-            "count": 3
+            "count": 2
         },
         {
             "id": 1,
@@ -17,8 +17,8 @@
         },
         {
             "id": 100,
-            "name": "wechat",
-            "count": 0
+            "name": "upateWechat",
+            "count": 1
         }
     ]
 }
