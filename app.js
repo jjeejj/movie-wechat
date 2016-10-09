@@ -6,7 +6,7 @@ var wechat = require('./wechat/g.js');
 
 var config = require('./config');
 
-var weixin = require('./weixin');
+var reply = require('./wx/reply');
 
 
 

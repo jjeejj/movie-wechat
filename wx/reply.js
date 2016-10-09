@@ -1,6 +1,7 @@
 'use strict';
-var config = require('./config');
-var Wechat = require('./wechat/wechat');
+var config = require('../config');
+var Wechat = require('../wechat/wechat');
+var path = require('path');
 
 var wechatApi = new Wechat(config.wechat);
 
@@ -64,7 +65,7 @@ exports.reply = function *(next) {
 				}
 			]
 		}else if(content ==='5'){ //上传图片---回复图片
-			var data = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg');
+			var data = yield wechatApi.uploadMaterial('image',path(__dirname + '../material/test.jpg'));
 			reply = {
 				type:'image',
 				mediaId:data.media_id
@@ -83,7 +84,7 @@ exports.reply = function *(next) {
 
 			} 
 		}else if(content === '10'){ //上传图文素材---最多8段
-			var newPicData = yield wechatApi.uploadMaterial('pic',__dirname + '/material/test.jpg',{}); //上传图文用的图片素材
+			var newPicData = yield wechatApi.uploadMaterial('pic',path(__dirname + '../material/test.jpg',{})); //上传图文用的图片素材
 			// var picData = yield wechatApi.uploadMaterial('image',__dirname + '/material/test.jpg',{}); //上传图片素材--封面
 
 			var media = {
@@ -151,7 +152,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log(JSON.stringify(count));
 
 			//把素材数量信息存到文件中
-			fs.writeFile('./json-info/permanent-material-count-info.json',JSON.stringify(count,null,4),function (err) {
+			fs.writeFile('../json-info/permanent-material-count-info.json',JSON.stringify(count,null,4),function (err) {
 				if(err) {
 			      console.log(err);
 			    } else {
@@ -214,7 +215,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log(materialListResult);
 
 			//把素材列表信息存到文件中
-			fs.writeFile('./json-info/permanent-material-list-info.json',JSON.stringify(materialListResult,null,4),function (err) {
+			fs.writeFile('../json-info/permanent-material-list-info.json',JSON.stringify(materialListResult,null,4),function (err) {
 				if(err) {
 			      console.log(err);
 			    } else {
@@ -253,7 +254,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log('操作之后的分组信息',groups);
 			
 			//把所有的分组信息保存到文件中
-			fs.writeFile('./json-info/group-list-info.json',JSON.stringify(groups,null,4),function (err) {
+			fs.writeFile('../json-info/group-list-info.json',JSON.stringify(groups,null,4),function (err) {
 				if(err) {
 			      console.log(err);
 			    } else {
@@ -285,7 +286,7 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log('用户列表:',usersList);
 
 			//把用户列表信息保存到文件中
-			fs.writeFile('./json-info/users-list-info.json',JSON.stringify(usersList,null,4),function (err) {
+			fs.writeFile('../json-info/users-list-info.json',JSON.stringify(usersList,null,4),function (err) {
 				if(err) {
 			      console.log(err);
 			    } else {
@@ -309,6 +310,19 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log('群发消息结果:',msgData);
 
 			reply = "Yeah!"
+		}else if(content === '16'){ //预览接口
+			var mpnews = { //图文消息
+				"media_id":"qHjGwCQ95p9tPlmN394S2k_7_zqB1hPl4Mpdwpjur9k"
+			}
+			var msgData = yield wechatApi.previewMass('mpnews',mpnews,message.FromUserName,null);//图文消息
+
+			console.log('预览消息:',msgData);
+		}else if(content === '17'){ //查看状态删除群发
+
+			var statusData = yield wechatApi.deleteMassOrGetMassStatus('6335173098164090179',2);//群发状态
+			console.log('群发状态，',statusData);
+			var deleteData = yield wechatApi.deleteMassOrGetMassStatus('6335173098164090179',2);//删除群发
+			console.log('删除群发，',deleteData);
 		}
 
 		console.log('文本回复内容===============',reply);

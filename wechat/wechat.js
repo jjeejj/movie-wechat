@@ -57,11 +57,20 @@ var api = {
 	},
 	mass:{  //群发
 		sendByGroupOrTag:prefix + 'message/mass/sendall?access_token=ACCESS_TOKEN',//群发接口，根据标签进行群发 ，根据分组进行群发
-		uploadvideo:'https://file.api.weixin.qq.com/cgi-bin/media/uploadvideo?access_token=ACCESS_TOKEN'//群发视频之前需要调用该接口，获得群发视频的media_id
+		uploadvideo:'https://file.api.weixin.qq.com/cgi-bin/media/uploadvideo?access_token=ACCESS_TOKEN',//群发视频之前需要调用该接口，获得群发视频的media_id
 		sendByOpendIds:prefix + 'message/mass/send?access_token=ACCESS_TOKEN',//根据OpenID列表群发【订阅号不可用，服务号认证后可用】
 		delete: prefix + 'message/mass/delete?access_token=ACCESS_TOKEN',//删除群发【订阅号与服务号认证后均可用】
 		preview: prefix + 'message/mass/preview?access_token=ACCESS_TOKEN',//预览接口【订阅号与服务号认证后均可用】
 		status: prefix + 'message/mass/get?access_token=ACCESS_TOKEN' //查询群发消息发送状态
+	},
+	menu:{ //菜单
+		create: prefix + 'menu/create?access_token=ACCESS_TOKEN',//创建菜单
+		addConditional: prefix + 'menu/addconditional?access_token=ACCESS_TOKEN',//创建个性化菜单
+		fetch:prefix + 'menu/get?access_token=ACCESS_TOKEN',//获取菜单--查询已经创建的菜单
+		delete:prefix +'menu/delete?access_token=ACCESS_TOKEN',//删除菜单，调用此接口会删除默认菜单及全部个性化菜单。
+		delconditional:prefix +'menu/delconditional?access_token=ACCESS_TOKEN',//删除个性化菜单
+		previewConditional:prefix +'menu/trymatch?access_token=ACCESS_TOKEN',//预览个性化菜单
+		current:prefix +'get_current_selfmenu_info?access_token=ACCESS_TOKEN',//获取自定义菜单配置
 	}
 
 
@@ -1050,7 +1059,7 @@ Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
 
 	//群发的json
 	var msg = {
-		"touser":openIds
+		"touser":openIds,
 	   	"msgtype":type
 	}
 
@@ -1088,8 +1097,15 @@ Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
 
 /**
  * 删除群发
+ * 1、只有已经发送成功的消息才能删除
+ *	2、删除消息是将消息的图文详情页失效，已经收到的用户，还是能在其本地看到消息卡片。
+ *	3、删除群发消息只能删除图文消息和视频消息，其他类型的消息一经发送，无法删除。
+ *	4、如果多次群发发送的是一个图文消息，那么删除其中一次群发，就会删除掉这个图文消息也，导致所有群发都失效
  * 或
  * 查询群发消息发送状态
+ *
+ *
+ * 预览接口发送的消息不能删除和查看发送状态
  * @param  {[type]} msg_id 微信群发后的返回的ID
  * @param  {[type]} flag 功能选择 1 为删除群发，2：为查询群发状态
  * @return {[type]}       
@@ -1185,5 +1201,149 @@ Wechat.prototype.previewMass = function (type,message,openId,wxname) {
 				})
 	})
 }
+/**
+ * 创建菜单
+ * 菜单标题，不超过16个字节，子菜单不超过40个字节
+ * @param  {[type]} menu 菜单对象
+ * @return {[type]}   
+ */
+Wechat.prototype.createMenu = function (menu) {
+	var that = this;
 
+
+	var createMenuUrl = api.menu.create; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					createMenuUrl = createMenuUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'post',
+						url:createMenuUrl,
+						json:true,
+						body:menu
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`创建菜单成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createMenu fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+/**
+ * 自定义菜单查询接口
+ * 在设置了个性化菜单后，使用本自定义菜单查询接口可以获取默认菜单和全部个性化菜单信息。
+ * @return {[type]} [description]
+ */
+Wechat.prototype.fetchMenu = function () {
+	var that = this;
+
+
+	var fetchMenuUrl = api.menu.fetch;
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					fetchMenuUrl = fetchMenuUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'get',
+						url:fetchMenuUrl,
+						json:true,
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`获取菜单信息成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('fetchMenu fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 删除菜单
+ * 在个性化菜单时，调用此接口会删除默认菜单及全部个性化菜单。
+ * @return {[type]} [description]
+ */
+Wechat.prototype.deleteMenu = function () {
+	var that = this;
+
+
+	var deleteMenuUrl = api.menu.delete; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					deleteMenuUrl = deleteMenuUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'get',
+						url:deleteMenuUrl,
+						json:true,
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`删除菜单成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('deleteMenu fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 获取自定义菜单配置接口
+ * 如果公众号是通过API调用设置的菜单，则返回菜单的开发配置，
+ * 而如果公众号是在公众平台官网通过网站功能发布菜单，则本接口返回运营者设置的菜单配置。
+ * @return {[type]} [description]
+ */
+Wechat.prototype.currentMenu = function () {
+	var that = this;
+
+
+	var currentMenuUrl = api.menu.current; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					currentMenuUrl = currentMenuUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'get',
+						url:currentMenuUrl,
+						json:true,
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`获取菜单配置成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('currentMenuUrl fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
 module.exports = Wechat;
