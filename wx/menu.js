@@ -11,7 +11,7 @@ module.exports = {
 			'name':'点出菜单',
 			'sub_button':[
 				{
-					'name':'跳转github'
+					'name':'跳转github',
 					'type':'view',
 					'url':'http://github.com'
 				},

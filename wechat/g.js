@@ -7,7 +7,7 @@ var getRawBody = require('raw-body');
 
 var utils = require('../libs/utils');
 
-var weixin = require('../weixin');
+var reply = require('../wx/reply'); //回复处理
 
 //返回微信接入验证的生成器函数
 module.exports = function (opts) {
@@ -74,9 +74,9 @@ module.exports = function (opts) {
 
 						console.log('-------------------------------------');
 
-						yield weixin.reply.call(this,next); //处理逻辑
+						yield reply.reply.call(this,next); //处理逻辑
 
-						console.log('weixin.reply处理成功------------------------');
+						console.log('reply.reply处理成功------------------------');
 
 						wechat.reply.call(this);
 					}

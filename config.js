@@ -21,6 +21,34 @@ var config = {
 
 			return utils.writeFileAsync(wechat_file,data);//返回一个Promise
 		}
+	},
+	//日志的配置
+	log4js:{
+		appenders:[
+			{
+				type:'conslole',//控制台输入
+				category:'conslole'
+			},
+			{
+				type:'dateFile',//文件输出
+				filename:'./logs/data/access',
+				category:'log_date',
+				pattern:'-yyyy-MM-dd.log'
+
+			},
+			{
+				type:'file',
+				filename:'./logs/file/access',
+				maxLogSize:1024,
+				category:'log_file',
+				backups:3
+			}
+		],
+		replaceConsole:true,
+		levels::{
+			'log_file':'ALL',
+			'log_date':'ALL',
+		}
 	}
 }
 

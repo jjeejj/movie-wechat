@@ -8,7 +8,8 @@ var _ = require('lodash');
 var fs = require('fs');
 
 //微信api接口
-var prefix = 'https://api.weixin.qq.com/cgi-bin/'; //前缀
+var prefix = 'https://api.weixin.qq.com/cgi-bin/'; //api. 前缀
+var mpPrefix = 'https://mp.weixin.qq.com/cgi-bin/';//mp.
 var api = {
 	access_token:prefix+'token?grant_type=client_credential&appid=APPID&secret=APPSECRET', //获取access_token
 	temporary:{
@@ -71,6 +72,16 @@ var api = {
 		delconditional:prefix +'menu/delconditional?access_token=ACCESS_TOKEN',//删除个性化菜单
 		previewConditional:prefix +'menu/trymatch?access_token=ACCESS_TOKEN',//预览个性化菜单
 		current:prefix +'get_current_selfmenu_info?access_token=ACCESS_TOKEN',//获取自定义菜单配置
+	},
+	qrcode:{ //二维码用户扫描带场景值二维码时，可能推送以下两种事件：
+			//如果用户还未关注公众号，则用户可以关注公众号，关注后微信会将带场景值关注事件推送给开发者。
+			//如果用户已经关注公众号，在用户扫描后会自动进入会话，微信也会将带场景值扫描事件推送给开发者。
+		create:prefix +'qrcode/create?access_token=TOKEN',//创建二维码ticket
+		show:mpPrefix +'showqrcode?ticket=TICKET'//获取二维码的地址
+	},
+	shorturl:{//将一条长链接转成短链接。主要使用场景： 开发者用于生成二维码的原链接（商品、支付二维码等）
+		//太长导致扫码速度和成功率下降，将原长链接通过此接口转成短链接再生成二维码将大大提升扫码速度和成功率。
+		create:prefix+'shorturl?access_token=ACCESS_TOKEN'
 	}
 
 
@@ -1346,4 +1357,97 @@ Wechat.prototype.currentMenu = function () {
 				})
 	})
 }
+/**
+ * 创建二维码ticket
+ * @param  {[type]} qr ：临时：{"expire_seconds": 604800, "action_name": "QR_SCENE", "action_info": {"scene": {"scene_id": 123}}}
+ * 永久： {"action_name": "QR_LIMIT_SCENE", "action_info": {"scene": {"scene_id": 123}}} 
+ * 或{"action_name": "QR_LIMIT_STR_SCENE", "action_info": {"scene": {"scene_str": "123"}}}
+ * @return {[type]}    [description]
+ */
+Wechat.prototype.createQrcode = function (qr) {
+	var that = this;
+
+	var createQrcodeUrl = api.qrcode.create; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					createQrcodeUrl = createQrcodeUrl.replace('ACCESS_TOKEN',data.access_token);
+		
+					request({
+						method:'post',
+						url:createQrcodeUrl,
+						json:true,
+						body:qr
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`创建二维码ticket成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createQrcodeUrl fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 通过ticket换取二维码
+ * @param  {[type]} ticket 二维码ticket
+ * @return {[type]}      uri
+ */
+Wechat.prototype.showQrcode = function (ticket) {
+
+	var showQrcodeUrl = api.qrcode.show; 
+
+	return showQrcodeUrl.replace('TICKET',encodeURI(ticket));
+}
+
+/**
+ * 长链接转短链接接口
+ * @param  {[type]} url   需要转换的长链接
+ * @param  {[type]} action action 此处填long2short，代表长链接转短链接
+ * @return {[type]}         [description]
+ */
+Wechat.prototype.createShortUrl = function (url,action) {
+	var that = this;
+
+	action = action || 'long2short'
+
+	var createShortUrl = api.shorturl.create; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					createShortUrl = createShortUrl.replace('ACCESS_TOKEN',data.access_token);
+					
+					var form = {
+						action:action,
+						long_url:url
+					};
+					request({
+						method:'post',
+						url:createShortUrl,
+						json:true,
+						body:form
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`长链接转短链接接成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('createShortUrl fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
 module.exports = Wechat;

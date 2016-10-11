@@ -2,6 +2,7 @@
 var config = require('../config');
 var Wechat = require('../wechat/wechat');
 var path = require('path');
+var menu = require('./menu');
 
 var wechatApi = new Wechat(config.wechat);
 
@@ -37,6 +38,39 @@ exports.reply = function *(next) {
 		}else if(message.Event === 'SCAN'){
 			console.log('关注后扫描二维码');
 			this.body = '关注后扫描二维码：'+ message.EventKey +';' + message.Ticket;
+		}else if(message.Event === 'scancode_push'){
+			console.log('扫码推送事件');
+			console.log('message.ScanCodeInfo.ScanType',message.ScanCodeInfo.ScanType);
+			console.log('message.ScanCodeInfo.ScanResult',message.ScanCodeInfo.ScanResult);
+			this.body = '扫码推送事件'+ message.EventKey;
+		}else if(message.Event === 'scancode_waitmsg'){
+			console.log('扫码带提示');
+			console.log('message.ScanCodeInfo.ScanType',message.ScanCodeInfo.ScanType);
+			console.log('message.ScanCodeInfo.ScanResult',message.ScanCodeInfo.ScanResult);
+			this.body = '扫码带提示'+ message.EventKey;
+		}else if(message.Event === 'pic_sysphoto'){
+			console.log('弹出系统拍照');
+			console.log('message.SendPicsInfo.Count',message.SendPicsInfo.Count);
+			console.log('message.SendPicsInfo.PicList',message.SendPicsInfo.PicList);
+			this.body = '弹出系统拍照'+ message.EventKey;
+		}else if(message.Event === 'pic_photo_or_album'){
+			console.log('弹出拍照或者相册');
+			console.log('message.SendPicsInfo.Count',message.SendPicsInfo.Count);
+			console.log('message.SendPicsInfo.PicList',message.SendPicsInfo.PicList);
+			this.body = '弹出拍照或者相册'+ message.EventKey;
+		}else if(message.Event === 'pic_weixin'){
+			console.log('弹出微信相册');
+			console.log('message.SendPicsInfo.Count',message.SendPicsInfo.Count);
+			console.log('message.SendPicsInfo.PicList',message.SendPicsInfo.PicList);
+			this.body = '弹出微信相册'+ message.EventKey;
+		}else if(message.Event === 'location_select'){
+			console.log('地理位置选择');
+			console.log('message.SendLocationInfo.Location_X',message.SendLocationInfo.Location_X);
+			console.log('message.SendLocationInfo.Location_Y',message.SendLocationInfo.Location_Y);
+			console.log('message.SendLocationInfo.Label',message.SendLocationInfo.Label);
+			console.log('message.SendLocationInfo.Scale',message.SendLocationInfo.Scale);
+			console.log('message.SendLocationInfo.Poiname',message.SendLocationInfo.Poiname);
+			this.body = '地理位置选择'+ message.EventKey;
 		}
 	}else if(message.MsgType === 'text'){ //接收普通文本消息 ----并回复内容
 		var content = message.Content;//用户输的文本内容
@@ -323,10 +357,54 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 			console.log('群发状态，',statusData);
 			var deleteData = yield wechatApi.deleteMassOrGetMassStatus('6335173098164090179',2);//删除群发
 			console.log('删除群发，',deleteData);
+		}else if(content === '18'){ //菜单
+
+			wechatApi.deleteMenu().then(function () {
+				return wechatApi.createMenu(menu)
+			}).then(function (msg) {
+				console.log(msg);
+			})
+		}else if(content === '19'){ //qrcode
+
+			var tempQr = {
+				expire_seconds:604800,
+				action_name:'QR_SCENE',
+				action_info:{
+					scene:{
+						scene_id:123
+					}		
+				}
+			};
+			var qr = {
+				action_name:'QR_LIMIT_SCENE',
+				action_info:{
+					scene:{
+						scene_id:123
+					}		
+				}
+			}
+			var strQr = {
+				action_name:'QR_LIMIT_STR_SCENE',
+				action_info:{
+					scene:{
+						scene_str:'abc'
+					}		
+				}
+			}
+
+			var tempQrticket = yield wechatApi.createQrcode(tempQr);
+			var qrticket = yield wechatApi.createQrcode(qr);
+			var strQrticket = yield wechatApi.createQrcode(strQr);
+
+
+		}else if(content === '20'){ //长链接转短链接接口
+
+			
 		}
 
 		console.log('文本回复内容===============',reply);
 		this.body = reply;
+
 	}
 
 	yield next;
