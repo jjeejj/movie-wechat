@@ -10,6 +10,7 @@ var fs = require('fs');
 //微信api接口
 var prefix = 'https://api.weixin.qq.com/cgi-bin/'; //api. 前缀
 var mpPrefix = 'https://mp.weixin.qq.com/cgi-bin/';//mp.
+var semanticPrefix = 'https://api.weixin.qq.com/semantic/';//语意接口前缀
 var api = {
 	access_token:prefix+'token?grant_type=client_credential&appid=APPID&secret=APPSECRET', //获取access_token
 	temporary:{
@@ -82,7 +83,8 @@ var api = {
 	shorturl:{//将一条长链接转成短链接。主要使用场景： 开发者用于生成二维码的原链接（商品、支付二维码等）
 		//太长导致扫码速度和成功率下降，将原长链接通过此接口转成短链接再生成二维码将大大提升扫码速度和成功率。
 		create:prefix+'shorturl?access_token=ACCESS_TOKEN'
-	}
+	},
+	semantic:'https://api.weixin.qq.com/semantic/semproxy/search?access_token=YOUR_ACCESS_TOKEN' //发送语义理解
 
 
 
@@ -118,7 +120,7 @@ Wechat.prototype.fetchAccessToken = function () {
 	//判断实例换对象是否有access_token 和 expires_in 切且是否过期
 	if(that.access_token && that.expires_in){
 		if(that.isValidAccessToken(this)){
-			return  Promise.resolve(this)
+			return  Promise.resolve(this); //返回的data是this对象
 		}
 	}
 	//在文件判断，是否重新获取
@@ -1442,6 +1444,44 @@ Wechat.prototype.createShortUrl = function (url,action) {
 							resolve(_data)
 						}else{
 							throw new Error('createShortUrl fail')
+						}
+					}).catch(function (err) {
+						reject(err);
+					})	
+				})
+	})
+}
+
+/**
+ * 发送语义理解请求
+ * @param  {[type]} semanticData post的数据
+ * @return {[type]}              [description]
+ */
+Wechat.prototype.semantic = function (semanticData) {
+	var that = this;
+
+	semanticData.appid = this.appID;
+	var semanticUrl = api.semantic; 
+	
+	return new Promise(function (resolve,reject) {
+			that
+				.fetchAccessToken()
+				.then(function (data) {
+					semanticUrl = semanticUrl.replace('YOUR_ACCESS_TOKEN',data.access_token);
+					
+				
+					request({
+						method:'post',
+						url:semanticUrl,
+						json:true,
+						body:semanticData
+					}).then(function (reponse) {
+						var _data = reponse.body;
+						console.log(`发送语义理解请求成功===============`,JSON.stringify(_data));
+						if(_data){
+							resolve(_data)
+						}else{
+							throw new Error('semanticUrl fail')
 						}
 					}).catch(function (err) {
 						reject(err);

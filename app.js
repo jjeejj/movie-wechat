@@ -15,10 +15,10 @@ var reply = require('./wx/reply');
 var app = Koa();
 
 //日志
-log4js.configure(config.log4js);
-var logger = log4js.getLogger('log_date');
-logger.setLevel('INFO');
-app.use(log4js.connectLogger(logger,{level:logger.levels.INFO}));
+// log4js.configure(config.log4js);
+// var logger = log4js.getLogger('log_date');
+// logger.setLevel('INFO');
+// app.use(log4js.connectLogger(logger,{level:logger.levels.INFO}));
 
 
 //中间件

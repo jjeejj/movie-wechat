@@ -399,6 +399,24 @@ o0eBxqPsYnibHFGh6mVHYg6g/0?wx_fmt=jpeg"}],"create_time":1474246503,"update_time"
 
 		}else if(content === '20'){ //长链接转短链接接口
 
+			var longURL = 'http://www.imooc.com';
+
+			var shortData = yield wechatApi.createShortUrl(longURL);
+
+			reply = shortData.short_url;
+			
+		}else if(content === '21'){ //语义理解接口
+
+			var semanticData = {
+				"query":"最近上映了哪些刘德华的电影",
+				"city":"北京",
+				"category": "movie”,",
+				"uid":message.FromUserName
+			}
+
+			var _semanticData = yield wechatApi.semantic(semanticData);
+
+			reply = JSON.stringify(_semanticData)
 			
 		}
 

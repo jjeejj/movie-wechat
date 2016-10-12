@@ -26,8 +26,7 @@ var config = {
 	log4js:{
 		appenders:[
 			{
-				type:'conslole',//控制台输入
-				category:'conslole'
+				type:'conslole'//控制台输入
 			},
 			{
 				type:'dateFile',//文件输出
@@ -45,7 +44,7 @@ var config = {
 			}
 		],
 		replaceConsole:true,
-		levels::{
+		levels:{
 			'log_file':'ALL',
 			'log_date':'ALL',
 		}
