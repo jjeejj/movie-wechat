@@ -42,7 +42,7 @@ exports.writeFileAsync = function (fpath,content) {
  * xml2js
  * parse xml to Obiect
  * @param  {[type]} data xml
- * @return {[type]}     Promise 
+ * @return {[type]}     Promise
  */
 exports.parseXMLAsync = function (xml) {
 	return new Promise(function (resolve,reject) {
@@ -52,8 +52,8 @@ exports.parseXMLAsync = function (xml) {
 			}else{
 				resolve(content);
 			}
-		})		
-	}) 
+		})
+	})
 }
 
 /**

@@ -5,6 +5,7 @@ var path = require('path');
 
 
 var wechat_file = path.join(__dirname,'./config/wechat.json');
+var wechat_ticket_file = path.join(__dirname,'./config/TYPE_ticket.json');
 
 //配置文件
 var config = {
@@ -20,7 +21,16 @@ var config = {
 			data = JSON.stringify(data,null,4);//字符串话----格式化排版
 
 			return utils.writeFileAsync(wechat_file,data);//返回一个Promise
-		}
+		},
+		getTicket:function (type) {
+
+			return utils.readFileAsync(wechat_ticket_file.replace('TYPE',type),'utf8');//返回一个Promise
+		},
+		saveTicket:function (data,type) { //传进来的是对象
+			data = JSON.stringify(data,null,4);//字符串话----格式化排版
+
+			return utils.writeFileAsync(wechat_ticket_file.replace('TYPE',type),data);//返回一个Promise
+		},
 	},
 	//日志的配置
 	log4js:{

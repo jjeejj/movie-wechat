@@ -47,7 +47,7 @@ var api = {
 		batchtag:prefix +'tags/members/batchtagging?access_token=ACCESS_TOKEN',//批量为用户打标签
 		batchuntag:prefix +'tags/members/batchuntagging?access_token=ACCESS_TOKEN',//批量为用户取消标签
 		getblacklist:prefix +'tags/members/getblacklist?access_token=ACCESS_TOKEN',//黑名单列表
-		batchblacklist:prefix +'tags/members/batchblacklist?access_token=ACCESS_TOKEN',//拉黑一批用户	
+		batchblacklist:prefix +'tags/members/batchblacklist?access_token=ACCESS_TOKEN',//拉黑一批用户
 		batchunblacklist:prefix+'tags/members/batchunblacklist?access_token=ACCESS_TOKEN'//取消拉黑一批用户
 	},
 
@@ -84,9 +84,10 @@ var api = {
 		//太长导致扫码速度和成功率下降，将原长链接通过此接口转成短链接再生成二维码将大大提升扫码速度和成功率。
 		create:prefix+'shorturl?access_token=ACCESS_TOKEN'
 	},
-	semantic:'https://api.weixin.qq.com/semantic/semproxy/search?access_token=YOUR_ACCESS_TOKEN' //发送语义理解
-
-
+	semantic:'https://api.weixin.qq.com/semantic/semproxy/search?access_token=YOUR_ACCESS_TOKEN', //发送语义理解
+	jssdk:{
+		getTicket:prefix+'ticket/getticket?access_token=ACCESS_TOKEN&type=TYPE'//TYPE的值 wx_card 或 jsapi
+	}
 
 
 }
@@ -107,8 +108,16 @@ function Wechat(opts) {
 	//存储票据的方法
 	this.saveAccessToken = opts.saveAccessToken;
 
+	//jssdk 票据
+	this.getTicket = opts.getTicket;
+	this.saveTicket = opts.saveTicket;
+
+
 	//执行获取票据的方法
 	this.fetchAccessToken();
+
+	//获取jssdk票据
+	// this.fetchTicket();
 }
 
 /**
@@ -124,31 +133,31 @@ Wechat.prototype.fetchAccessToken = function () {
 		}
 	}
 	//在文件判断，是否重新获取
-	this.getAccessToken()
-		.then(function (data) {
-			try{
-				data = JSON.parse(data)
-			}catch(e){
-				return that.updateAccessToken();
-			}
-			//判断有效性
-			if(that.isValidAccessToken(data)){
-				return Promise.resolve(data);
-			}else{
-				return that.updateAccessToken();
-			}
-		}).then(function (data) {
-			that.access_token = data.access_token;
-			that.expires_in = data.expires_in;
-			that.saveAccessToken(data);
-			return  Promise.resolve(data)
-		})
+	return 	this.getAccessToken()
+				.then(function (data) {
+					try{
+						data = JSON.parse(data)
+					}catch(e){
+						return that.updateAccessToken();
+					}
+					//判断有效性
+					if(that.isValidAccessToken(data)){
+						return Promise.resolve(data);
+					}else{
+						return that.updateAccessToken();
+					}
+				}).then(function (data) {
+					that.access_token = data.access_token;
+					that.expires_in = data.expires_in;
+					that.saveAccessToken(data);
+					return  Promise.resolve(data);
+				})
 }
 
 /**
- * 验证 access_toekn 是否有效 
+ * 验证 access_toekn 是否有效
  * @param  {[type]}  data Wechat构造函数实例换的对象，实例化对象上有验证的属性，或者data数据对象
- * @return {Boolean}      
+ * @return {Boolean}
  */
 Wechat.prototype.isValidAccessToken =function (data) {
 
@@ -191,9 +200,76 @@ Wechat.prototype.updateAccessToken = function () {
 			data.expires_in = expires_in;
 
 			resolve(data)
-		})	
+		})
 	})
 
+}
+
+/**
+ * 获取jssdk的ticket
+ * @param  {[type]} access_token 全局票据
+ * @param  {[type]} type       获取的ticket的类型
+ * @return {[type]}              [description]
+ */
+Wechat.prototype.fetchTicket = function (access_token,type) {
+	var that = this;
+
+	//在文件判断，是否重新获取
+	return	this.getTicket(type)
+			.then(function (data) {
+				try{
+					data = JSON.parse(data)
+				}catch(e){
+					return that.updateTicket(access_token,type);
+				}
+				//判断有效性
+				if(that.isValidTicket(data,type)){
+					return Promise.resolve(data);
+				}else{
+					return that.updateTicket(access_token,type);
+				}
+			}).then(function (data) {
+				that.saveTicket(data,type);
+				return  Promise.resolve(data)
+			})
+}
+//跟新ticket
+Wechat.prototype.updateTicket = function (access_token,type) {
+
+	var ticket_url = api.jssdk.getTicket.replace('ACCESS_TOKEN',access_token).replace('TYPE',type);
+
+	return new Promise(function (resolve,reject) {
+		request({
+			url:ticket_url,
+			json:true
+		}).then(function (response) {
+			var data = response.body;
+			var now = Date.now();
+			//自定义过期时间----提前20s
+			var expires_in = now + (data.expires_in -20) * 1000;
+
+			data[type +'expires_in'] = expires_in;
+
+			resolve(data)
+		})
+	})
+}
+//判断ticket是否过期
+Wechat.prototype.isValidTicket =function (data,type) {
+
+	if(!data || !data[type +'ticket'] || !data[type +'expires_in']){
+		return false;
+	}
+
+	var ticket = data[type +'ticket'];
+	var expires_in = data[type +'expires_in']; //过期时间
+	var now =  Date.now();
+
+	if(ticket && now <expires_in){
+		return true
+	}else{
+		return false;
+	}
 }
 
 //回复消息
@@ -224,7 +300,7 @@ Wechat.prototype.reply = function () {
  *	图文中的图片 (pic)
  *	图文 （news）
  *
- * 
+ *
  * @param  {String} material 文件路径/或图文的数组信息
  * @param  {String} permanent 配置选项，永久临时素材之分 --如果传值就是永久类型  permanent  会包含永久素材特有的参数
  * @return {Promise}   Promise
@@ -249,7 +325,7 @@ Wechat.prototype.uploadMaterial = function (type,material,permanent) {
 	}else{
 		form.media = fs.createReadStream(material);
 	}
-	
+
 	return new Promise(function (resolve,reject) {
 		that
 			.fetchAccessToken()
@@ -338,7 +414,7 @@ Wechat.prototype.fetchMaterial = function (mediaId,type,permanent) {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})		
+				})
 			})
 	})
 
@@ -356,7 +432,7 @@ Wechat.prototype.deleteMaterial = function (mediaId) {
 	};
 	var deteleUrl = api.permanent.detele;
 
-	
+
 	return new Promise(function (resolve,reject) {
 		that
 			.fetchAccessToken()
@@ -377,7 +453,7 @@ Wechat.prototype.deleteMaterial = function (mediaId) {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})			
+				})
 			})
 	})
 }
@@ -386,7 +462,7 @@ Wechat.prototype.deleteMaterial = function (mediaId) {
  * 更新永久图文素材
  * @param  {[type]} mediaId 素材ID
  * @param  {[type]} news   图文内容
- * @return {[type]}      Promise 
+ * @return {[type]}      Promise
  */
 Wechat.prototype.updateNewsMaterial = function (mediaId,news) {
 	var that = this;
@@ -398,7 +474,7 @@ Wechat.prototype.updateNewsMaterial = function (mediaId,news) {
 
 	var updateNewsUrl = api.permanent.updateNews;
 
-	
+
 	return new Promise(function (resolve,reject) {
 		that
 			.fetchAccessToken()
@@ -419,7 +495,7 @@ Wechat.prototype.updateNewsMaterial = function (mediaId,news) {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})			
+				})
 			})
 	})
 }
@@ -430,10 +506,10 @@ Wechat.prototype.updateNewsMaterial = function (mediaId,news) {
  */
 Wechat.prototype.getMaterialCount = function () {
 	var that = this;
-	
+
 	var materialCountUrl = api.permanent.materialCount;
 
-	
+
 	return new Promise(function (resolve,reject) {
 		that
 			.fetchAccessToken()
@@ -453,7 +529,7 @@ Wechat.prototype.getMaterialCount = function () {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})			
+				})
 			})
 	})
 }
@@ -481,7 +557,7 @@ Wechat.prototype.getMaterialList = function (options) {
 
 	var materialListUrl = api.permanent.materialList;
 
-	
+
 	return new Promise(function (resolve,reject) {
 		that
 			.fetchAccessToken()
@@ -502,7 +578,7 @@ Wechat.prototype.getMaterialList = function (options) {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})			
+				})
 			})
 	})
 }
@@ -547,7 +623,7 @@ Wechat.prototype.createGroup = function (name) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -567,7 +643,7 @@ Wechat.prototype.fetchGroups = function () {
 				.fetchAccessToken()
 				.then(function (data) {
 					fetchGroupUrl = fetchGroupUrl.replace('ACCESS_TOKEN',data.access_token);
-					
+
 					request({
 						method:'get',
 						url:fetchGroupUrl,
@@ -582,7 +658,7 @@ Wechat.prototype.fetchGroups = function () {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -591,7 +667,7 @@ Wechat.prototype.fetchGroups = function () {
 /**
  *根据用户的openi获取用户所在的分组
  * @param  {[type]} openid 用户的唯一标识
- * @return {[type]}      
+ * @return {[type]}
  */
 Wechat.prototype.fetchGroupByOpenId = function (openid) {
 	var that = this;
@@ -605,7 +681,7 @@ Wechat.prototype.fetchGroupByOpenId = function (openid) {
 					fetchGroupByOpenIdUrl = fetchGroupByOpenIdUrl.replace('ACCESS_TOKEN',data.access_token);
 					//POST数据格式：json
 					//POST数据例子：{"openid":"od8XIjsmk6QdVTETa9jLtGWA6KBc"}
-					
+
 					var form = {
 						"openid":openid
 					}
@@ -624,7 +700,7 @@ Wechat.prototype.fetchGroupByOpenId = function (openid) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -648,7 +724,7 @@ Wechat.prototype.updateGroup = function (groupId,name) {
 					updateGroupUrl = updateGroupUrl.replace('ACCESS_TOKEN',data.access_token);
 					//POST数据格式：json
 					//POST数据例子：{"group":{"id":108,"name":"test2_modify2"}}
-					
+
 					var form = {
 						"group":{
 							"id":groupId,
@@ -670,7 +746,7 @@ Wechat.prototype.updateGroup = function (groupId,name) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -696,7 +772,7 @@ Wechat.prototype.moveGroup = function (openids,to_groupid) {
 		//POST数据格式：json
 		//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
 		 form.openid_list = openids;
-				
+
 	}else{
 		//POST数据格式：json
 		//POST数据例子：{"openid":"oDF3iYx0ro3_7jD4HFRDfrjdCM58","to_groupid":108}
@@ -708,7 +784,7 @@ Wechat.prototype.moveGroup = function (openids,to_groupid) {
 				.fetchAccessToken()
 				.then(function (data) {
 					moveGroupUrl = moveGroupUrl.replace('ACCESS_TOKEN',data.access_token);
-					
+
 					request({
 						method:'post',
 						url:moveGroupUrl,
@@ -724,7 +800,7 @@ Wechat.prototype.moveGroup = function (openids,to_groupid) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -748,7 +824,7 @@ Wechat.prototype.moveBatchGroup = function (openid_list,to_groupid) {
 					moveBatchGroupUrl = moveBatchGroupUrl.replace('ACCESS_TOKEN',data.access_token);
 					//POST数据格式：json
 					//POST数据例子：{"openid_list":["oDF3iYx0ro3_7jD4HFRDfrjdCM58","oDF3iY9FGSSRHom3B-0w5j4jlEyY"],"to_groupid":108}
-					
+
 					var form = {
 						"openid_list":openid_list,
 						"to_groupid":to_groupid
@@ -768,7 +844,7 @@ Wechat.prototype.moveBatchGroup = function (openid_list,to_groupid) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -791,7 +867,7 @@ Wechat.prototype.deteleGroup = function (groupid) {
 					deteleGroupUrl = deteleGroupUrl.replace('ACCESS_TOKEN',data.access_token);
 					//POST数据格式：json
 					//POST数据例子：{"group":{"id":108}}
-					
+
 					var form = {
 						"group":{
 							"id":groupid
@@ -812,7 +888,7 @@ Wechat.prototype.deteleGroup = function (groupid) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 
 	})
@@ -821,7 +897,7 @@ Wechat.prototype.deteleGroup = function (groupid) {
 //用户信息接口
 
 /**
- * 
+ *
  * 指定用户设置备注名，该接口暂时开放给微信认证的服务号
  * @param  {[type]} openid 指定用户的用户标识
  * @param  {[type]} remark新的备注名，长度必须小于30字符
@@ -845,7 +921,7 @@ Wechat.prototype.remarkUser = function (openid,remark) {
 						"remark":"pangzi"
 					}
 					*/
-					
+
 					var form = {
 						"openid":openid,
 						"remark":"姜"
@@ -865,7 +941,7 @@ Wechat.prototype.remarkUser = function (openid,remark) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -902,7 +978,7 @@ Wechat.prototype.fetchUsers = function (openids,lang) {
 							"lang":lang
 						}
 					}else{
-					
+
 						fetchUsersUrl = fetchUsersUrl.replace('OPENID',openids).replace('zh_CN',lang);
 					}
 
@@ -920,7 +996,7 @@ Wechat.prototype.fetchUsers = function (openids,lang) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -933,20 +1009,20 @@ Wechat.prototype.fetchUsers = function (openids,lang) {
 Wechat.prototype.getUsersList = function (next_openid) {
 	var that = this;
 
-	var getUserListUrl = api.user.userList; 
-	
+	var getUserListUrl = api.user.userList;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 
-					
+
 					getUserListUrl = getUserListUrl.replace('ACCESS_TOKEN',data.access_token);
 
 					if(next_openid){
 						getUserListUrl += '&next_openid='+next_openid
 					}
-					
+
 					request({
 						method:'get',
 						url:getUserListUrl,
@@ -961,7 +1037,7 @@ Wechat.prototype.getUsersList = function (next_openid) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1000,15 +1076,15 @@ Wechat.prototype.sendByGroupOrTag = function (type,message,groupId,tagId) {
 		msg.filter.is_to_all = true;//发送所有
 	}
 
-	var sendByGroupOrTagUrl = api.mass.sendByGroupOrTag; 
-	
+	var sendByGroupOrTagUrl = api.mass.sendByGroupOrTag;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					sendByGroupOrTagUrl = sendByGroupOrTagUrl.replace('ACCESS_TOKEN',data.access_token);
 
-					
+
 					request({
 						method:'post',
 						url:sendByGroupOrTagUrl,
@@ -1024,7 +1100,7 @@ Wechat.prototype.sendByGroupOrTag = function (type,message,groupId,tagId) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1037,10 +1113,10 @@ Wechat.prototype.sendByGroupOrTag = function (type,message,groupId,tagId) {
 Wechat.prototype.massUploadvideo = function (content) {
 	var that = this;
 
-	var uploadvideo = api.mass.uploadvideo; 
-	
+	var uploadvideo = api.mass.uploadvideo;
+
 	return new Promise(function (resolve,reject) {
-		
+
 				request({
 					method:'post',
 					url:uploadvideo,
@@ -1056,7 +1132,7 @@ Wechat.prototype.massUploadvideo = function (content) {
 					}
 				}).catch(function (err) {
 					reject(err);
-				})	
+				})
 	})
 }
 
@@ -1079,15 +1155,15 @@ Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
 	msg[type] = message;
 
 
-	var sendByOpendIdsUrl = api.mass.sendByOpendIds; 
-	
+	var sendByOpendIdsUrl = api.mass.sendByOpendIds;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					sendByOpendIdsUrl = sendByOpendIdsUrl.replace('ACCESS_TOKEN',data.access_token);
 
-					
+
 					request({
 						method:'post',
 						url:sendByOpendIdsUrl,
@@ -1103,7 +1179,7 @@ Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1121,7 +1197,7 @@ Wechat.prototype.sendByOpendIds = function (type,message,openIds) {
  * 预览接口发送的消息不能删除和查看发送状态
  * @param  {[type]} msg_id 微信群发后的返回的ID
  * @param  {[type]} flag 功能选择 1 为删除群发，2：为查询群发状态
- * @return {[type]}       
+ * @return {[type]}
  */
 Wechat.prototype.deleteMassOrGetMassStatus = function (msg_id,flag) {
 	var that = this;
@@ -1131,13 +1207,13 @@ Wechat.prototype.deleteMassOrGetMassStatus = function (msg_id,flag) {
 	if(flag === 2){
 		deleteMassOrGetMassStatusUrl = api.mass.status;
 	}
-	
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					deleteMassOrGetMassStatusUrl = deleteMassOrGetMassStatusUrl.replace('ACCESS_TOKEN',data.access_token);
-			
+
 					request({
 						method:'post',
 						url:deleteMassOrGetMassStatusUrl,
@@ -1155,7 +1231,7 @@ Wechat.prototype.deleteMassOrGetMassStatus = function (msg_id,flag) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1187,14 +1263,14 @@ Wechat.prototype.previewMass = function (type,message,openId,wxname) {
 		msg.touser = openId;
 	}
 
-	var previewMassUrl = api.mass.preview; 
-	
+	var previewMassUrl = api.mass.preview;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					previewMassUrl = previewMassUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'post',
 						url:previewMassUrl,
@@ -1210,7 +1286,7 @@ Wechat.prototype.previewMass = function (type,message,openId,wxname) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1218,20 +1294,20 @@ Wechat.prototype.previewMass = function (type,message,openId,wxname) {
  * 创建菜单
  * 菜单标题，不超过16个字节，子菜单不超过40个字节
  * @param  {[type]} menu 菜单对象
- * @return {[type]}   
+ * @return {[type]}
  */
 Wechat.prototype.createMenu = function (menu) {
 	var that = this;
 
 
-	var createMenuUrl = api.menu.create; 
-	
+	var createMenuUrl = api.menu.create;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					createMenuUrl = createMenuUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'post',
 						url:createMenuUrl,
@@ -1247,7 +1323,7 @@ Wechat.prototype.createMenu = function (menu) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1261,13 +1337,13 @@ Wechat.prototype.fetchMenu = function () {
 
 
 	var fetchMenuUrl = api.menu.fetch;
-	
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					fetchMenuUrl = fetchMenuUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'get',
 						url:fetchMenuUrl,
@@ -1282,7 +1358,7 @@ Wechat.prototype.fetchMenu = function () {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1296,14 +1372,14 @@ Wechat.prototype.deleteMenu = function () {
 	var that = this;
 
 
-	var deleteMenuUrl = api.menu.delete; 
-	
+	var deleteMenuUrl = api.menu.delete;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					deleteMenuUrl = deleteMenuUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'get',
 						url:deleteMenuUrl,
@@ -1318,7 +1394,7 @@ Wechat.prototype.deleteMenu = function () {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1333,14 +1409,14 @@ Wechat.prototype.currentMenu = function () {
 	var that = this;
 
 
-	var currentMenuUrl = api.menu.current; 
-	
+	var currentMenuUrl = api.menu.current;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					currentMenuUrl = currentMenuUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'get',
 						url:currentMenuUrl,
@@ -1355,28 +1431,28 @@ Wechat.prototype.currentMenu = function () {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
 /**
  * 创建二维码ticket
  * @param  {[type]} qr ：临时：{"expire_seconds": 604800, "action_name": "QR_SCENE", "action_info": {"scene": {"scene_id": 123}}}
- * 永久： {"action_name": "QR_LIMIT_SCENE", "action_info": {"scene": {"scene_id": 123}}} 
+ * 永久： {"action_name": "QR_LIMIT_SCENE", "action_info": {"scene": {"scene_id": 123}}}
  * 或{"action_name": "QR_LIMIT_STR_SCENE", "action_info": {"scene": {"scene_str": "123"}}}
  * @return {[type]}    [description]
  */
 Wechat.prototype.createQrcode = function (qr) {
 	var that = this;
 
-	var createQrcodeUrl = api.qrcode.create; 
-	
+	var createQrcodeUrl = api.qrcode.create;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					createQrcodeUrl = createQrcodeUrl.replace('ACCESS_TOKEN',data.access_token);
-		
+
 					request({
 						method:'post',
 						url:createQrcodeUrl,
@@ -1392,7 +1468,7 @@ Wechat.prototype.createQrcode = function (qr) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1404,7 +1480,7 @@ Wechat.prototype.createQrcode = function (qr) {
  */
 Wechat.prototype.showQrcode = function (ticket) {
 
-	var showQrcodeUrl = api.qrcode.show; 
+	var showQrcodeUrl = api.qrcode.show;
 
 	return showQrcodeUrl.replace('TICKET',encodeURI(ticket));
 }
@@ -1420,14 +1496,14 @@ Wechat.prototype.createShortUrl = function (url,action) {
 
 	action = action || 'long2short'
 
-	var createShortUrl = api.shorturl.create; 
-	
+	var createShortUrl = api.shorturl.create;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					createShortUrl = createShortUrl.replace('ACCESS_TOKEN',data.access_token);
-					
+
 					var form = {
 						action:action,
 						long_url:url
@@ -1447,7 +1523,7 @@ Wechat.prototype.createShortUrl = function (url,action) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
@@ -1461,15 +1537,15 @@ Wechat.prototype.semantic = function (semanticData) {
 	var that = this;
 
 	semanticData.appid = this.appID;
-	var semanticUrl = api.semantic; 
-	
+	var semanticUrl = api.semantic;
+
 	return new Promise(function (resolve,reject) {
 			that
 				.fetchAccessToken()
 				.then(function (data) {
 					semanticUrl = semanticUrl.replace('YOUR_ACCESS_TOKEN',data.access_token);
-					
-				
+
+
 					request({
 						method:'post',
 						url:semanticUrl,
@@ -1485,7 +1561,7 @@ Wechat.prototype.semantic = function (semanticData) {
 						}
 					}).catch(function (err) {
 						reject(err);
-					})	
+					})
 				})
 	})
 }
