@@ -60,7 +60,7 @@ var htmlTpl = `
 		<meta name="viewport" content="width=device-width,initial-sacle=1,maxinum-scale=1.0,minmum=1.0">
 	</head>
 	<body>
-		<h1>点击录音，查询信息</h1>
+		<button type="button" id="search">点击录音，查询信息</button>
 		<p id="title"></p>
 		<p id="year"></p>
 		<p id="doctor"></p>
@@ -120,6 +120,48 @@ var htmlTpl = `
 				        console.log('res',res);
 				    }
 				});
+
+				//点击标题事件
+				var isRecording = false; //默认没有录制
+				var btn = $('#search');
+				// alert(btn);
+				btn.on('click',function(){
+					alert('点击了录音按钮');
+					if(!isRecording){ //判断是否开始录音
+						isRecording = true;
+						btn.text('正在录音.....');
+						wx.startRecord({
+							cancel:function () { //用户取消不让使用麦克风
+								alert('没有权限录音');
+								btn.text('点击录音，查询信息');
+							}
+						}); //开启录音
+
+						return;
+					}
+
+					isRecording = false ;
+					btn.text('点击录音，查询信息')
+					wx.stopRecord({ //停止录音
+					    success: function (res) {
+					        var localId = res.localId; //本地录音的标识
+
+					        wx.translateVoice({ //识别音频
+							    ocalId: localId, // 需要识别的音频的本地Id，由录音相关接口获得
+							    isShowProgressTips: 1, // 默认为1，显示进度提示
+							    success: function (res) {
+							        window.alert(res.translateResult); // 语音识别的结果
+							    },
+							    fail:function () {
+							    	window.alert('您说的我听不懂');
+							    }
+							});
+					    },
+					    fail:function () {
+					    	window.alert('录音失败，请点击重新录音');
+					    }
+					});
+				})
 			});
 			//配置失败接口
 			wx.error(function(res){

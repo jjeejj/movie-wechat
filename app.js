@@ -31,27 +31,27 @@ var app = Koa();
 app.use(function *(next) {
 	if(this.url.indexOf('/movie') > -1){
 		console.log('js sdk 页面');
-        console.log('tpl',tpl);
-        //实例化Wechat对象
-        var wechatApi = new Wechat(config.wechat);
-        //获取access_token
-        var data = yield wechatApi.fetchAccessToken();
+                // console.log('tpl',tpl);
+                //实例化Wechat对象
+                var wechatApi = new Wechat(config.wechat);
+                //获取access_token
+                var data = yield wechatApi.fetchAccessToken();
 
-        var access_token = data.access_token;
+                var access_token = data.access_token;
 
-        var ticketData = yield wechatApi.fetchTicket(access_token,'jsapi');
+                var ticketData = yield wechatApi.fetchTicket(access_token,'jsapi');
 
-        var ticket = ticketData.ticket;//授权的票据
+                var ticket = ticketData.ticket;//授权的票据
 
-        var url = this.href.replace(':8000',''); //qq代理会出现8000端口
+                var url = this.href.replace(':8000',''); //qq代理会出现8000端口
 
-        var params = util.sign(ticket,url);
+                var params = util.sign(ticket,url);
 
-        params.appID = wechatApi.appID;
+                params.appID = wechatApi.appID;
 
-		this.body = ejs.render(tpl.htmlTpl,params);
+        	this.body = ejs.render(tpl.htmlTpl,params);
 
-		return;
+        	return;
 	}
 
 	yield next;
