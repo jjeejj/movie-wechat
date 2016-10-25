@@ -63,8 +63,9 @@ var htmlTpl = `
 		<button type="button" id="search">点击录音，查询信息</button>
 		<p id="title"></p>
 		<p id="year"></p>
-		<p id="doctor"></p>
+		<p id="directors"></p>
 		<div id="poster"></div>
+		<p id="info"></p>
 		<script src="//cdn.bootcss.com/zepto/1.2.0/zepto.min.js"></script>
 		<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
 		<script>
@@ -97,23 +98,16 @@ var htmlTpl = `
 					'getNetworkType',
 					'openLocation',
 					'getLocation',
-					'hideOptionMenu',
-					'showOptionMenu',
-					'hideMenuItems',
-					'showMenuItems',
 					'hideAllNonBaseMenuItem',
 					'showAllNonBaseMenuItem',
-					'closeWindow',
-					'scanQRCode',
-					'chooseWXPay',
-					'openProductSpecificView'
+					'closeWindow'
 			    ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
 			});
 			wx.ready(function(){
-			    // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，
+			    //config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，
 			    //config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
 				wx.checkJsApi({
-				    jsApiList: ['onVoiceRecordEnd'], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+				    jsApiList: ['startRecord','stopRecord','translateVoice','onMenuShareAppMessage'], // 需要检测的JS接口列表，所有JS接口列表见附录2,
 				    success: function(res) {
 				        // 以键值对的形式返回，可用的api值true，不可用为false
 				        // 如：{"checkResult":{"chooseImage":true},"errMsg":"checkJsApi:ok"}
@@ -121,15 +115,42 @@ var htmlTpl = `
 				    }
 				});
 
+				//分享内容
+				var shareContent = {
+					title: '默认', // 分享标题
+				    desc: '默认描述', // 分享描述
+				    link: '', // 分享链接
+				    imgUrl: 'http://static.mukewang.com/static/img/index/logo.png', // 分享图标
+				    type: 'link', // 分享类型,music、video或link，不填默认为link
+				    dataUrl: '', // 如果type是music或video，则要提供数据链接，默认为空
+				    success: function () {
+				        // 用户确认分享后执行的回调函数
+				        alert('分享成功')
+				    },
+				    cancel: function () {
+				        // 用户取消分享后执行的回调函数
+				        alert('取消分享')
+				    }
+				}
+				//分享给朋友接口
+				wx.onMenuShareAppMessage(shareContent);
+
+				//预览接口
+				var slideImgs = {
+					current: '', // 当前显示图片的http链接
+    				urls: [] // 需要预览的图片http链接列表
+				};
+
 				//点击标题事件
 				var isRecording = false; //默认没有录制
 				var btn = $('#search');
-				// alert(btn);
+
 				btn.on('click',function(){
-					alert('点击了录音按钮');
+
 					if(!isRecording){ //判断是否开始录音
 						isRecording = true;
 						btn.text('正在录音.....');
+						console.log('开始录音了。。。。。。。。。。。');
 						wx.startRecord({
 							cancel:function () { //用户取消不让使用麦克风
 								alert('没有权限录音');
@@ -143,24 +164,76 @@ var htmlTpl = `
 					isRecording = false ;
 					btn.text('点击录音，查询信息')
 					wx.stopRecord({ //停止录音
-					    success: function (res) {
-					        var localId = res.localId; //本地录音的标识
 
+					    success: function (res) {
+					    	console.log('停止录音了。。。。。。。。。。。');
+					    	console.log('录音了res。。。。。。。。。。。',res);
+					        var localId = res.localId; //本地录音的标识
 					        wx.translateVoice({ //识别音频
-							    ocalId: localId, // 需要识别的音频的本地Id，由录音相关接口获得
+							    localId: localId, // 需要识别的音频的本地Id，由录音相关接口获得
 							    isShowProgressTips: 1, // 默认为1，显示进度提示
 							    success: function (res) {
-							        window.alert(res.translateResult); // 语音识别的结果
+							    	console.log('予语音识别结果',res);
+							        // window.alert(res.translateResult); // 语音识别的结果
+							        var result = res.translateResult;
+							        //ajax请求数据
+							        $.ajax({
+							        	type:'GET',
+							        	url:'https://api.douban.com/v2/movie/search?q='+result,
+							        	jsonp:'callback',
+							        	dataType:'jsonp',
+							        	success:function (data) {
+							        		// alert(data.total)
+							        		if(!data || data.total == 0){
+												$("#info").text("没有对应的查询结果");
+							        		}else{
+							        			var subject = data.subjects[0];
+							        			$("#title").text(subject.title);//标题
+							        			$("#year").text(subject.year);//年份
+							        			$("#directors").text(subject.directors.name);//导演
+							        			$("#poster").html('<img src="'+subject.images.large+'"/>');//海报
+
+							        			//分享的文案
+							        			shareContent.title = subject.title;
+							        			shareContent.desc = data.title;
+							        			shareContent.link = subject.alt;
+							        			shareContent.imgUrl = subject.images.large;
+							        			shareContent.type = 'link';
+							        			wx.onMenuShareAppMessage(shareContent);
+
+							        			//预览的内容
+												slideImgs.current = subject.images.large;
+												data.subjects.forEach(function (item) {
+													slideImgs.urls.push(item.images.large)
+												});
+							        		}
+
+							        	},
+							        	error:function (xhr, type) {
+							        		console.log('请求失败');
+							        	},
+							        	complete:function (xhr, status) {
+							        		console.log('请求完成');
+							        	}
+
+							        })
+
 							    },
 							    fail:function () {
 							    	window.alert('您说的我听不懂');
 							    }
 							});
 					    },
-					    fail:function () {
+					    fail:function (res) {
+					    	console.log('失败返回的：',res);
 					    	window.alert('录音失败，请点击重新录音');
 					    }
 					});
+				});
+
+				//预览图片
+				$('#poster').on('click',function () {
+					wx.previewImage(slideImgs);
 				})
 			});
 			//配置失败接口
