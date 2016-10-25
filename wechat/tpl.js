@@ -187,6 +187,7 @@ var htmlTpl = `
 							        		if(!data || data.total == 0){
 												$("#info").text("没有对应的查询结果");
 							        		}else{
+							        			$("#info").text(''); //如果有结果把这句没有结果的提示清除
 							        			var subject = data.subjects[0];
 							        			$("#title").text(subject.title);//标题
 							        			$("#year").text(subject.year);//年份
